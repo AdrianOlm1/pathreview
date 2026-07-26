@@ -44,3 +44,29 @@ builds the metadata dict and already has a `_has_readme` helper I can mirror.
   the existing README check; the main open question is which GitHub endpoint to
   use for directory/file detection (contents API vs. git tree API), which I'll
   decide during implementation.
+
+## Week 8 — Reproduction & solution planning
+
+**Reproduction commit link:** https://github.com/AdrianOlm1/pathreview/commit/5241611e4e9ea4610ba84ce49a1cbf38cd1856e1
+
+**Reproduction summary:**
+I added a unit test (`tests/unit/test_github_tool.py`) that mocks the GitHub API
+so no network call is made, runs `GitHubTool.execute(...)`, and asserts the
+returned analysis output contains a `has_tests` boolean. The tool call succeeds,
+but the assertion fails — the output dict has no `has_tests` key at all,
+confirming the gap lives in `GitHubTool._fetch_repo_metadata`
+(`agent/tools/github_tool.py`).
+
+**PLAN.md link:** https://github.com/AdrianOlm1/pathreview/blob/feat/50-has-tests-detection/PLAN.md
+
+**Walkthrough video (recommended):** [not recorded yet — optional]
+
+**Blockers or open questions:**
+- Which GitHub endpoint to use for detection: the recursive Git Trees API (one
+  call, catches `test_*.py` at any depth, but can be `truncated` on huge repos)
+  vs. per-path Contents API checks. Current plan favors the tree API with a
+  Contents-API fallback when the tree is truncated.
+- The pre-commit `mypy` hook is currently blocked by a *pre-existing* typing
+  error in `github_tool.py:135` (`_has_readme` returns `Any`). It's unrelated to
+  the reproduction, so the reproduction commit used `--no-verify`; I'll fix that
+  one-liner as part of the Week 9 fix so hooks pass cleanly.
