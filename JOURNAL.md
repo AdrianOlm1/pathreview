@@ -118,3 +118,82 @@ introduces no new test failures (repo has documented pre-existing failures). -->
 
 **Draft PR feedback received from:** <!-- TODO: name or Slack handle, or "none" -->
 
+## Week 10 — Iteration & reflection
+
+### Reviewer feedback
+
+**Feedback received:** [ ] Yes  [x] No — still awaiting review
+
+**Summary of feedback:**
+No reviewer feedback came in. (Per the Summer 2026 course note, reviewer
+feedback isn't a feature this term, and no human review or maintainer comments
+appeared on PR #50 during the week.) I did try to pre-empt the obvious reviewer
+questions in the PR description itself: why I edited `github_tool.py` instead of
+the non-existent `repo_analyzer.py` named in the issue, why detection is scoped
+to Python conventions, and why `make check` isn't clean (the repo's pre-existing
+failures, with a documented before/after baseline).
+
+**How you responded:**
+No changes required — no feedback to respond to. If a review had asked for
+changes (e.g. broadening the filename match or dropping the extra API call), I'd
+have replied in-thread, pushed a follow-up commit rather than force-pushing over
+history, and recorded the exchange here.
+
+---
+
+### Reflection
+
+**What was harder than you expected?**
+The code change itself was small; everything *around* it was harder. Just getting
+the project to run took real work — the default `python3` was 3.14, which has no
+`onnxruntime`/`chromadb` wheels, so setup exploded until I rebuilt the venv on
+3.12; Docker Desktop was installed but never launched; and the pinned
+`chromadb:0.4.22` container crash-looped on NumPy 2.0. Then, once I was in the
+code, the repo turned out to have 53 pre-existing failing unit tests and ~181
+`ruff` errors. The genuinely hard part wasn't writing `_has_tests` — it was
+separating *my* impact from noise that was already there, and resisting the urge
+to "fix everything."
+
+**What did you learn about working in a large codebase?**
+Contributing to someone else's production code is mostly about restraint and fit.
+On my own projects I'd refactor freely; here the right move was to make the
+change *additive* (a new dict key that downstream code reads via `.get()`, so
+nothing existing can break) and to make my code look like the code already
+around it — I deliberately mirrored the existing `has_readme` / `_has_readme`
+pair instead of inventing my own style. I also learned that an issue description
+is a starting point, not ground truth: the issue named a file that doesn't exist,
+and only reading the actual code told me where the change really belonged. And
+that "does it pass?" in a partly-broken repo has to mean "did I add any new
+failures?", proven with a baseline — not "is the whole suite green."
+
+**How did AI tools help — and where did they fall short?**
+AI was most valuable for speed of orientation: navigating an unfamiliar
+multi-module project, locating the real file behind the mis-named one, diagnosing
+the setup failures (the Python 3.14 wheel problem, the ChromaDB/NumPy crash), and
+scaffolding the mocked tests in the repo's existing style. Where it fell short was
+judgment: the design tradeoffs were mine to own. Choosing the recursive Git Trees
+API over per-path Contents calls, realizing the tree can be *truncated* on huge
+repos and needs a fallback, deciding to read `default_branch` instead of assuming
+`main`, and spotting that matching only `test_*.py` misses pytest's `*_test.py`
+convention — those came from reasoning about correctness and rate limits, not
+from a prompt. AI accelerates the "what exists / how do I wire it," but the "is
+this actually right, and what breaks at the edges" still needs a human in the loop.
+
+**What would you do differently if you started over?**
+Two things. First, I'd comment on the issue to confirm the target file *before*
+writing code, since the referenced `repo_analyzer.py` doesn't exist — I resolved
+it myself and documented it, but a 30-second question would have de-risked the
+whole week. Second, I'd nail the detection scope up front: match both `test_*.py`
+and `*_test.py`, and be explicit that the truncated-tree fallback only checks
+top-level signals (so a deeply nested test file in a giant repo is a known false
+negative). I'd rather state a limitation clearly than have a reviewer find it.
+
+**What are you most proud of?**
+The reproduce-before-you-fix discipline. In Week 8 I wrote a failing test that
+pinned the exact gap — the analysis output had no `has_tests` key — and that same
+test became the first green check on the final PR. It kept the whole effort
+honest: I could prove the problem was real before touching anything, prove the
+fix worked afterward, and prove I hadn't broken the 53 things that were already
+failing. It's a small feature, but the process behind it is something I'd stand
+behind on any team.
+
